@@ -1,153 +1,81 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Driver Payment System</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💳</text></svg>">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f7ff;
-      padding: 40px;
-    }
-    h1 {
-      color: #4a6cf7;
-      font-size: 32px;
-    }
-    input, button {
-      font-size: 16px;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 6px;
-    }
-    input {
-      width: 200px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background-color: #4a6cf7;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    pre {
-      background: #fff;
-      padding: 20px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin-top: 20px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Driver Payment System</h1>
 
-  <label for="driver-id">Enter Driver ID:</label><br>
-  <input type="text" id="driver-id" placeholder="e.g. 82305" />
-  <button onclick="checkDriver()">Check Salary</button>
+<!-- PLACEHOLDER: original full HTML file goes here with all UI intact -->
+<!-- INSERT THIS SCRIPT AT THE BOTTOM of <script> section or replace the existing data loading logic -->
 
-  <pre id="output">Salary details will appear here...</pre>
+// Auto-load driver data from GitHub on page load
+async function loadDriverDataFromGitHub() {
+  try {
+    const response = await fetch("https://wzmwwjkl.github.io/driver-payment-system/docs/drivers.xlsx");
+    const arrayBuffer = await response.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: "array" });
 
-  <script>
-    const appData = {
-      drivers: [],
-      sameAddressRate: 0.5,
-      regularRate: 2.0,
-    };
+    const sheetName = workbook.SheetNames.find(name =>
+      name.toLowerCase().includes("driver")
+    );
 
-    async function loadDriverDataFromGitHub() {
-      try {
-        const response = await fetch("https://wzmwwjkl.github.io/driver-payment-system/docs/drivers.xlsx");
-        const arrayBuffer = await response.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer, { type: "array" });
-
-        const sheetName = workbook.SheetNames.find(name =>
-          name.toLowerCase().includes("driver")
-        );
-
-        if (!sheetName) {
-          console.error("Driver sheet not found");
-          return;
-        }
-
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-        if (!jsonData.length) {
-          console.error("Sheet is empty");
-          return;
-        }
-
-        const columnMap = {};
-        Object.keys(jsonData[0]).forEach(key => {
-          columnMap[key.toLowerCase().trim()] = key;
-        });
-
-        jsonData.forEach(row => {
-          const idRaw = row[columnMap["driver_id"]];
-          if (!idRaw) return;
-
-          const driverId = String(idRaw).split(".")[0];  // "82305.0" -> "82305"
-
-          if (driverId === "绿宝") return;
-
-          let driverName = row[columnMap["driver_name"]] || "";
-          const dotIndex = driverName.indexOf(".");
-          if (dotIndex !== -1) {
-            driverName = driverName.substring(dotIndex + 1);
-          }
-
-          const totalOrders = parseInt(row[columnMap["total_order_cnt"]]) || 0;
-          const sameAddressOrders = parseInt(row[columnMap["rest_order_cnt"]]) || 0;
-          const deduction = 0;
-          const regularRate = appData.regularRate;
-
-          appData.drivers.push({
-            id: driverId,
-            name: driverName,
-            total_order_cnt: totalOrders,
-            rest_order_cnt: sameAddressOrders,
-            deduction: deduction,
-            regularRate: regularRate
-          });
-        });
-
-        console.log("Loaded drivers:", appData.drivers.length);
-      } catch (err) {
-        console.error("Error loading data:", err);
-      }
+    if (!sheetName) {
+      console.error("Driver sheet not found in Excel file");
+      return;
     }
 
-    function checkDriver() {
-      const inputId = document.getElementById("driver-id").value.trim();
-      const driver = appData.drivers.find(d => d.id === inputId);
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      if (!driver) {
-        alert("Driver not found. Please make sure the admin has imported the data.");
-        return;
+    if (jsonData.length === 0) {
+      console.error("Driver sheet is empty");
+      return;
+    }
+
+    const drivers = [];
+    const firstRow = jsonData[0];
+    const columnMap = {};
+    Object.keys(firstRow).forEach(key => {
+      const normalizedKey = key.toLowerCase().trim();
+      columnMap[normalizedKey] = key;
+    });
+
+    jsonData.forEach(row => {
+      const idRaw = row[columnMap["driver_id"]];
+      if (!idRaw) return;
+
+      const driverId = String(idRaw).split(".")[0]; // Strip decimals
+      if (driverId === "绿宝") return;
+
+      let driverName = row[columnMap["driver_name"]] || "";
+      const dotIndex = driverName.indexOf(".");
+      if (dotIndex !== -1) {
+        driverName = driverName.substring(dotIndex + 1);
       }
 
-      const regularOrders = driver.total_order_cnt - driver.rest_order_cnt;
-      const salary = driver.rest_order_cnt * appData.sameAddressRate +
-                     regularOrders * driver.regularRate -
-                     driver.deduction;
+      const totalOrders = parseInt(row[columnMap["total_order_cnt"]]) || 0;
+      const sameAddressOrders = parseInt(row[columnMap["rest_order_cnt"]]) || 0;
 
-      const result = {
-        "Driver ID": driver.id,
-        "Name": driver.name,
-        "Total Orders": driver.total_order_cnt,
-        "Same Address Orders": driver.rest_order_cnt,
-        "Regular Orders": regularOrders,
-        "Deduction": `$${driver.deduction.toFixed(2)}`,
-        "Salary": `$${salary.toFixed(2)}`
-      };
+      const deduction = 0;
+      const regularRate = appData.regularRate;
 
-      document.getElementById("output").textContent = JSON.stringify(result, null, 2);
+      drivers.push({
+        id: driverId,
+        name: driverName,
+        total_order_cnt: totalOrders,
+        rest_order_cnt: sameAddressOrders,
+        deduction: deduction,
+        regularRate: regularRate
+      });
+    });
+
+    if (drivers.length === 0) {
+      console.error("No valid driver data found in file");
+      return;
     }
 
-    window.onload = loadDriverDataFromGitHub;
-  </script>
-</body>
-</html>
+    appData.drivers = drivers;
+    console.log("Driver data loaded from GitHub:", drivers.length);
+    renderDriversTable();
+  } catch (err) {
+    console.error("Failed to load data:", err);
+  }
+}
+
+// Load data from GitHub when page loads
+loadDriverDataFromGitHub();
+
