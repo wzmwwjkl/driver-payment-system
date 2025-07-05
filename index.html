@@ -733,406 +733,111 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Global data storage
-            const appData = {
-                drivers: [],
-                sameAddressRate: 0.5,
-                regularRate: 2.0,
-                currentDriver: null,
-                currentPage: 1,
-                driversPerPage: 15
-            };
-            
-            // Tab switching
-            const tabBtns = document.querySelectorAll('.tab-btn');
-            const portals = document.querySelectorAll('.portal');
-            
-            tabBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    // Update tab state
-                    tabBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    
-                    // Update content display
-                    portals.forEach(p => p.classList.remove('active'));
-                    document.getElementById(`${btn.dataset.tab}-portal`).classList.add('active');
-                });
-            });
-            
-            // Driver salary check
-            const checkSalaryBtn = document.getElementById('check-salary');
-            const driverIdInput = document.getElementById('driver-id');
-            const resultContainer = document.getElementById('result-container');
-            
-            checkSalaryBtn.addEventListener('click', () => {
-                const driverId = driverIdInput.value.trim();
-                
-                if (!driverId) {
-                    alert('Please enter driver ID');
-                    return;
-                }
-                
-                // Find driver in data
-                const driver = appData.drivers.find(d => d.id === driverId);
-                
-                if (driver) {
-                    displayDriverResult(driver);
-                } else {
-                    alert('Driver not found. Please make sure the admin has imported the data.');
-                }
-            });
-            
-            function displayDriverResult(driver) {
-                document.getElementById('result-id').textContent = driver.id;
-                document.getElementById('result-name').textContent = driver.name;
-                document.getElementById('result-total').textContent = driver.total_order_cnt;
-                document.getElementById('result-same-address').textContent = driver.rest_order_cnt;
-                document.getElementById('result-regular').textContent = driver.total_order_cnt - driver.rest_order_cnt;
-                document.getElementById('result-deduction').textContent = `$${driver.deduction.toFixed(2)}`;
-                document.getElementById('result-same-rate').textContent = `$${appData.sameAddressRate.toFixed(2)}/order`;
-                document.getElementById('result-regular-rate').textContent = `$${driver.regularRate.toFixed(2)}/order`;
-                
-                // Calculate salary
-                const sameAddressEarnings = driver.rest_order_cnt * appData.sameAddressRate;
-                const regularEarnings = (driver.total_order_cnt - driver.rest_order_cnt) * driver.regularRate;
-                const totalEarnings = sameAddressEarnings + regularEarnings - driver.deduction;
-                
-                document.getElementById('result-salary').textContent = `$${totalEarnings.toFixed(2)}`;
-                resultContainer.style.display = 'block';
+document.addEventListener('DOMContentLoaded', function () {
+    // Global data storage
+    const appData = {
+        drivers: [],
+        sameAddressRate: 0.5,
+        regularRate: 2.0,
+        currentPage: 1,
+        driversPerPage: 15
+    };
+
+    // Expose appData for global access
+    window.appData = appData;
+
+    const DATA_URL = "https://wzmwwjkl.github.io/driver-payment-system/docs/drivers.xlsx";
+
+    // Auto-load drivers from GitHub-hosted Excel
+    async function loadDriverDataFromGitHub() {
+        try {
+            const response = await fetch(DATA_URL);
+            const arrayBuffer = await response.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+            const sheetName = workbook.SheetNames.find(name =>
+                name.toLowerCase().includes('driver')
+            );
+
+            if (!sheetName) {
+                showMessage('Driver sheet not found in Excel file', 'error');
+                return;
             }
-            
-            // Admin functionality
-            const passwordInput = document.getElementById('admin-password');
-            const submitPasswordBtn = document.getElementById('submit-password');
-            const passwordError = document.getElementById('password-error');
-            const adminSection = document.getElementById('admin-section');
-            const passwordSection = document.getElementById('password-section');
-            
-            submitPasswordBtn.addEventListener('click', () => {
-                if (passwordInput.value === 'Del1998!') {
-                    passwordSection.style.display = 'none';
-                    adminSection.style.display = 'block';
-                } else {
-                    passwordError.style.display = 'block';
-                }
+
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            if (jsonData.length === 0) {
+                showMessage('Driver sheet is empty', 'error');
+                return;
+            }
+
+            const drivers = [];
+            const firstRow = jsonData[0];
+            const columnMap = {};
+
+            Object.keys(firstRow).forEach(key => {
+                const normalizedKey = key.toLowerCase().trim();
+                columnMap[normalizedKey] = key;
             });
-            
-            // Excel import
-            const browseBtn = document.getElementById('browse-btn');
-            const fileInput = document.getElementById('excel-file');
-            const dropZone = document.getElementById('drop-zone');
-            const importBtn = document.getElementById('import-btn');
-            const importMessage = document.getElementById('import-message');
-            
-            // Open file dialog
-            browseBtn.addEventListener('click', () => {
-                fileInput.click();
-            });
-            
-            // Handle file selection
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    dropZone.classList.add('active');
-                    dropZone.querySelector('p').textContent = `Selected: ${e.target.files[0].name}`;
-                    importBtn.disabled = false;
-                }
-            });
-            
-            // Drag and drop functionality
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('active');
-            });
-            
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('active');
-            });
-            
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('active');
-                
-                if (e.dataTransfer.files.length > 0) {
-                    fileInput.files = e.dataTransfer.files;
-                    dropZone.querySelector('p').textContent = `Selected: ${fileInput.files[0].name}`;
-                    importBtn.disabled = false;
-                }
-            });
-            
-            // Import data
-            importBtn.addEventListener('click', () => {
-                if (!fileInput.files.length) return;
-                
-                const file = fileInput.files[0];
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        
-                        // Find Driver sheet
-                        const driverSheetName = workbook.SheetNames.find(name => 
-                            name.toLowerCase().includes('driver')
-                        );
-                        
-                        if (!driverSheetName) {
-                            showMessage('Driver sheet not found', 'error');
-                            return;
-                        }
-                        
-                        const worksheet = workbook.Sheets[driverSheetName];
-                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                        
-                        if (jsonData.length === 0) {
-                            showMessage('Driver sheet is empty', 'error');
-                            return;
-                        }
-                        
-                        // Process data
-                        const drivers = [];
-                        
-                        // Find column indexes
-                        const firstRow = jsonData[0];
-                        const columnMap = {};
-                        
-                        // Create column name mapping
-                        Object.keys(firstRow).forEach(key => {
-                            const normalizedKey = key.toLowerCase().trim();
-                            columnMap[normalizedKey] = key;
-                        });
-                        
-                        // Process each row
-                        jsonData.forEach(row => {
-                            // Check required fields
-                            if (!('driver_id' in columnMap) || !row[columnMap.driver_id]) return;
-                            
-                            const driverId = row[columnMap.driver_id];
-                            // Skip summary rows
-                            if (driverId === '绿宝') return;
-                            
-                            // Process driver name
-                            let driverName = '';
-                            if ('driver_name' in columnMap) {
-                                driverName = row[columnMap.driver_name];
-                                // Remove ID prefix
-                                const dotIndex = driverName.indexOf('.');
-                                if (dotIndex !== -1) {
-                                    driverName = driverName.substring(dotIndex + 1);
-                                }
-                            }
-                            
-                            // Get order data
-                            const totalOrders = 'total_order_cnt' in columnMap ? 
-                                parseInt(row[columnMap.total_order_cnt]) || 0 : 0;
-                                
-                            const sameAddressOrders = 'rest_order_cnt' in columnMap ? 
-                                parseInt(row[columnMap.rest_order_cnt]) || 0 : 0;
-                            
-                            // Ignore adjustment column as requested
-                            const deduction = 0;
-                            
-                            // Use default regular rate
-                            const regularRate = appData.regularRate;
-                            
-                            drivers.push({
-                                id: driverId,
-                                name: driverName,
-                                total_order_cnt: totalOrders,
-                                rest_order_cnt: sameAddressOrders,
-                                deduction: deduction,
-                                regularRate: regularRate
-                            });
-                        });
-                        
-                        if (drivers.length === 0) {
-                            showMessage('No valid driver data found', 'error');
-                            return;
-                        }
-                        
-                        appData.drivers = drivers;
-                        showMessage(`Successfully imported ${drivers.length} drivers`, 'success');
-                        renderDriversTable();
-                        
-                        // Notify drivers that new data is available
-                        if (document.getElementById('driver-portal').classList.contains('active')) {
-                            alert('New salary data has been imported. You can now check your salary.');
-                        }
-                    } catch (error) {
-                        console.error(error);
-                        showMessage(`Import failed: ${error.message}`, 'error');
+
+            jsonData.forEach(row => {
+                if (!('driver_id' in columnMap) || !row[columnMap.driver_id]) return;
+
+                const driverId = row[columnMap.driver_id];
+                if (driverId === '绿宝') return;
+
+                let driverName = '';
+                if ('driver_name' in columnMap) {
+                    driverName = row[columnMap.driver_name];
+                    const dotIndex = driverName.indexOf('.');
+                    if (dotIndex !== -1) {
+                        driverName = driverName.substring(dotIndex + 1);
                     }
-                };
-                
-                reader.readAsArrayBuffer(file);
-            });
-            
-            // Rate application
-            const sameAddressRateInput = document.getElementById('same-address-rate');
-            const regularRateInput = document.getElementById('regular-rate');
-            const applyRatesBtn = document.getElementById('apply-rates');
-            
-            applyRatesBtn.addEventListener('click', () => {
-                appData.sameAddressRate = parseFloat(sameAddressRateInput.value) || 0.5;
-                appData.regularRate = parseFloat(regularRateInput.value) || 2.0;
-                
-                // Update all drivers with the new default regular rate
-                appData.drivers.forEach(driver => {
-                    driver.regularRate = appData.regularRate;
+                }
+
+                const totalOrders = 'total_order_cnt' in columnMap ?
+                    parseInt(row[columnMap.total_order_cnt]) || 0 : 0;
+
+                const sameAddressOrders = 'rest_order_cnt' in columnMap ?
+                    parseInt(row[columnMap.rest_order_cnt]) || 0 : 0;
+
+                const deduction = 0;
+                const regularRate = appData.regularRate;
+
+                drivers.push({
+                    id: driverId,
+                    name: driverName,
+                    total_order_cnt: totalOrders,
+                    rest_order_cnt: sameAddressOrders,
+                    deduction: deduction,
+                    regularRate: regularRate
                 });
-                
-                if (appData.drivers.length > 0) {
-                    renderDriversTable();
-                    showMessage('Rates updated successfully for all drivers', 'success');
-                }
             });
-            
-            // Pagination
-            const prevPageBtn = document.getElementById('prev-page');
-            const nextPageBtn = document.getElementById('next-page');
-            const pageInfo = document.getElementById('page-info');
-            
-            prevPageBtn.addEventListener('click', () => {
-                if (appData.currentPage > 1) {
-                    appData.currentPage--;
-                    renderDriversTable();
-                }
-            });
-            
-            nextPageBtn.addEventListener('click', () => {
-                const totalPages = Math.ceil(appData.drivers.length / appData.driversPerPage);
-                if (appData.currentPage < totalPages) {
-                    appData.currentPage++;
-                    renderDriversTable();
-                }
-            });
-            
-            // Show message
-            function showMessage(text, type) {
-                importMessage.textContent = text;
-                importMessage.className = `message ${type}`;
-                importMessage.style.display = 'block';
-                
-                setTimeout(() => {
-                    importMessage.style.display = 'none';
-                }, 5000);
+
+            if (drivers.length === 0) {
+                showMessage('No valid driver data found in file', 'error');
+                return;
             }
-            
-            // Render drivers table
-            function renderDriversTable() {
-                const container = document.getElementById('drivers-table-container');
-                const pagination = document.getElementById('pagination');
-                
-                if (appData.drivers.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <span class="icon">📊</span>
-                            <h3>No Data Available</h3>
-                            <p>Please import an Excel file to view driver payment data</p>
-                        </div>
-                    `;
-                    pagination.style.display = 'none';
-                    document.getElementById('total-drivers').textContent = '0';
-                    document.getElementById('total-salary').textContent = '$0.00';
-                    return;
-                }
-                
-                // Pagination logic
-                const totalPages = Math.ceil(appData.drivers.length / appData.driversPerPage);
-                const startIndex = (appData.currentPage - 1) * appData.driversPerPage;
-                const endIndex = Math.min(startIndex + appData.driversPerPage, appData.drivers.length);
-                const currentDrivers = appData.drivers.slice(startIndex, endIndex);
-                
-                let tableHTML = `
-                    <div class="drivers-table-container">
-                        <table class="drivers-table">
-                            <thead>
-                                <tr>
-                                    <th>Driver ID</th>
-                                    <th>Name</th>
-                                    <th>Total Orders</th>
-                                    <th>Same Address</th>
-                                    <th>Regular Rate</th>
-                                    <th>Deductions ($)</th>
-                                    <th>Salary ($)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                
-                let totalSalary = 0;
-                
-                currentDrivers.forEach(driver => {
-                    const regularOrders = driver.total_order_cnt - driver.rest_order_cnt;
-                    const sameAddressEarnings = driver.rest_order_cnt * appData.sameAddressRate;
-                    const regularEarnings = regularOrders * driver.regularRate;
-                    const totalEarnings = sameAddressEarnings + regularEarnings - driver.deduction;
-                    
-                    totalSalary += totalEarnings;
-                    
-                    tableHTML += `
-                        <tr>
-                            <td>${driver.id}</td>
-                            <td>${driver.name}</td>
-                            <td>${driver.total_order_cnt}</td>
-                            <td>${driver.rest_order_cnt}</td>
-                            <td>
-                                <input type="number" class="input-field" 
-                                    value="${driver.regularRate.toFixed(2)}" 
-                                    onchange="updateDriverRate('${driver.id}', this.value)" step="0.01" min="0">
-                            </td>
-                            <td>
-                                <input type="number" class="input-field" 
-                                    value="${driver.deduction.toFixed(2)}" 
-                                    onchange="updateDeduction('${driver.id}', this.value)" step="0.01" min="0">
-                            </td>
-                            <td><strong>${totalEarnings.toFixed(2)}</strong></td>
-                        </tr>
-                    `;
-                });
-                
-                tableHTML += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                
-                container.innerHTML = tableHTML;
-                
-                // Update pagination
-                pageInfo.textContent = `Page ${appData.currentPage} of ${totalPages}`;
-                prevPageBtn.disabled = appData.currentPage === 1;
-                nextPageBtn.disabled = appData.currentPage === totalPages;
-                pagination.style.display = 'flex';
-                
-                // Update summary
-                document.getElementById('total-drivers').textContent = appData.drivers.length;
-                document.getElementById('total-salary').textContent = `$${totalSalary.toFixed(2)}`;
-            }
-            
-            // Global function for updating deduction
-            window.updateDeduction = function(driverId, value) {
-                const deduction = parseFloat(value) || 0;
-                const driver = appData.drivers.find(d => d.id === driverId);
-                
-                if (driver) {
-                    driver.deduction = deduction;
-                    renderDriversTable();
-                }
-            };
-            
-            // Global function for updating driver rate
-            window.updateDriverRate = function(driverId, value) {
-                const rate = parseFloat(value) || 0;
-                const driver = appData.drivers.find(d => d.id === driverId);
-                
-                if (driver) {
-                    driver.regularRate = rate;
-                    renderDriversTable();
-                }
-            };
-        });
-    </script>
+
+            appData.drivers = drivers;
+            showMessage(`Loaded ${drivers.length} drivers from GitHub`, 'success');
+
+            renderDriversTable();
+
+        } catch (err) {
+            console.error("Failed to load data:", err);
+            showMessage('Failed to fetch driver data from GitHub', 'error');
+        }
+    }
+
+    loadDriverDataFromGitHub();
+
+    // The rest of your code is unchanged — paste your existing script here ↓
+    // OR paste the script you provided earlier below this comment
+    // ...
+});
+</script>
+
 </body>
 </html>
