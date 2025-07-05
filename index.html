@@ -1,81 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Payment System</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💳</text></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        
+        :root {
+            --primary: #4a6cf7;
+            --primary-dark: #3a5ae8;
+            --secondary: #6a8aff;
+            --light: #f5f7ff;
+            --dark: #2d3748;
+            --gray: #718096;
+            --light-gray: #e2e8f0;
+            --success: #38a169;
+            --error: #e53e3e;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --card-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f0f2ff 0%, #e6e9ff 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background-color: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            border: 1px solid rgba(240, 242, 247, 0.8);
+        }
+        
+        header {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 28px 35px;
+            text-align: center;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            font-size: 17px;
+            opacity: 0.92;
+            font-weight: 400;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            background-color: #f8faff;
+            border-bottom: 1px solid #e4e9ff;
+        }
+        
+        .tab-btn {
+            padding: 18px 40px;
+            font-size: 17px;
+            font-weight: 500;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            color: #5a6c93;
+        }
+        
+        .tab-btn.active {
+            color: var(--primary);
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--primary);
+            border-radius: 3px 3px 0 0;
+        }
+        
+        .tab-content {
+            padding: 35px;
+            min-height: 500px;
+        }
+        
+        .portal {
+            display: none;
+        }
+        
+        .portal.active {
+            display: block;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(74, 108, 247, 0.08);
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(234, 237, 255, 0.8);
+        }
+        
+        h2 {
+            color: var(--dark);
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #f0f3ff;
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        h2 .icon {
+            background: #eef2ff;
+            width: 45px;
+            height: 45px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 20px;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 500;
+            color: var(--gray);
+            font-size: 16px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 16px 20px;
+            border: 1px solid #d1d9ff;
+            border-radius: 16px;
+            font-size: 17px;
+            transition: all 0.3s;
+            background: #fafbff;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(74, 108, 247, 0.18);
+            background: white;
+        }
+        
+        .btn {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            font-size: 17px;
+            font-weight: 500;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(74, 108, 247, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(74, 108, 247, 0.4);
+            background: linear-gradient(90deg, var(--primary-dark) 0%, var(--secondary) 100%);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(90deg, #5a6c93 0%, #7a8db3 100%);
+            box-shadow: 0 5px 15px rgba(90, 108, 147, 0.3);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            box-shadow: none;
+        }
+        
+        .result-card {
+            background: #f8faff;
+            border-left: 5px solid var(--primary);
+        }
+        
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        
+        .result-item {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
+            border: 1px solid #f0f3ff;
+        }
+        
+        .result-label {
+            font-size: 15px;
+            color: var(--gray);
+            margin-bottom: 8px;
+        }
+        
+        .result-value {
+            font-weight: 600;
+            font-size: 19px;
+            color: var(--dark);
+        }
+        
+        .salary-value {
+            font-size: 32px;
+            color: var(--primary);
+            font-weight: 800;
+        }
+        
+        .file-upload {
+            border: 2px dashed #d1d9ff;
+            border-radius: 20px;
+            padding: 40px 25px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+            background: #fafbff;
+        }
+        
+        .file-upload.active {
+            border-color: var(--primary);
+            background: #f0f4ff;
+        }
+        
+        .file-upload p {
+            margin: 20px 0;
+            color: var(--gray);
+            font-size: 17px;
+        }
+        
+        .message {
+            padding: 18px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        .success {
+            background-color: #f0fff4;
+            border: 1px solid #c6f6d5;
+            color: var(--success);
+        }
+        
+        .error {
+            background-color: #fff5f5;
+            border: 1px solid #fed7d7;
+            color: var(--error);
+        }
+        
+        .rate-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .rate-card {
+            background: #f8faff;
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid #e2e8ff;
+        }
+        
+        .rate-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .rate-title .icon {
+            background: #eef2ff;
+            width: 45px;
+            height: 45px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 20px;
+        }
+        
+        .drivers-table-container {
+            overflow-x: auto;
+            border-radius: 20px;
+            border: 1px solid #eef2ff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+            margin-bottom: 25px;
+        }
+        
+        .drivers-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .drivers-table th {
+            background-color: #f5f7ff;
+            padding: 18px 22px;
+            text-align: left;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 15px;
+            border-bottom: 1px solid #eef2ff;
+        }
+        
+        .drivers-table td {
+            padding: 18px 22px;
+            border-bottom: 1px solid #f0f3ff;
+            font-size: 16px;
+        }
+        
+        .drivers-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .drivers-table tr:nth-child(even) {
+            background-color: #fafbff;
+        }
+        
+        .drivers-table tr:hover {
+            background-color: #f5f7ff;
+        }
+        
+        .input-field {
+            padding: 12px 15px;
+            border: 1px solid #d1d9ff;
+            border-radius: 12px;
+            font-size: 15px;
+            background: white;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.2);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 25px;
+            color: var(--gray);
+        }
+        
+        .empty-state .icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: #d1d9ff;
+            opacity: 0.7;
+        }
+        
+        .empty-state h3 {
+            font-size: 22px;
+            margin-bottom: 12px;
+            color: var(--dark);
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+            gap: 12px;
+        }
+        
+        .page-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f5f7ff;
+            border: 1px solid #e2e8ff;
+            cursor: pointer;
+            font-size: 15px;
+            color: var(--dark);
+            transition: all 0.3s;
+        }
+        
+        .page-btn:hover {
+            background: #eef2ff;
+        }
+        
+        .page-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .summary-card {
+            background: #f0f4ff;
+            border-radius: 18px;
+            padding: 25px;
+            margin-top: 25px;
+        }
+        
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #e2e8ff;
+        }
+        
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+        
+        .summary-label {
+            font-size: 17px;
+            color: var(--gray);
+        }
+        
+        .summary-value {
+            font-weight: 700;
+            font-size: 19px;
+            color: var(--primary);
+        }
+        
+        .instructions {
+            background: #f9fafb;
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 25px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .instructions h3 {
+            margin-bottom: 15px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .instructions ol {
+            padding-left: 25px;
+        }
+        
+        .instructions li {
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab-btn {
+                width: 100%;
+                text-align: center;
+            }
+            
+            .rate-controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                border-radius: 20px;
+            }
+            
+            header {
+                padding: 22px 18px;
+            }
+            
+            .tab-content {
+                padding: 25px 18px;
+            }
+            
+            h1 {
+                font-size: 26px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Driver Payment System</h1>
+            <div class="subtitle">Accurate and efficient payment calculations</div>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="driver">Driver Portal</button>
+            <button class="tab-btn" data-tab="admin">Admin Portal</button>
+        </div>
+        
+        <div class="tab-content">
+            <!-- Driver Portal -->
+            <div id="driver-portal" class="portal active">
+                <div class="card">
+                    <h2><span class="icon">🔍</span>Salary Inquiry</h2>
+                    <div class="input-group">
+                        <label for="driver-id">Enter Driver ID</label>
+                        <input type="text" id="driver-id" placeholder="e.g. 33972">
+                    </div>
+                    <button id="check-salary" class="btn">
+                        <span class="icon">💲</span> Check Salary
+                    </button>
+                </div>
+                
+                <div id="result-container" class="card result-card" style="display: none;">
+                    <h2><span class="icon">📋</span>Salary Details</h2>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <div class="result-label">Driver ID</div>
+                            <div id="result-id" class="result-value">33972</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Driver Name</div>
+                            <div id="result-name" class="result-value">Yanliang Dong</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Total Orders</div>
+                            <div id="result-total" class="result-value">594</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Same Address Orders</div>
+                            <div id="result-same-address" class="result-value">56</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Regular Orders</div>
+                            <div id="result-regular" class="result-value">538</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Deductions</div>
+                            <div id="result-deduction" class="result-value">$0.00</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Same Address Rate</div>
+                            <div id="result-same-rate" class="result-value">$0.50/order</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Regular Rate</div>
+                            <div id="result-regular-rate" class="result-value">$2.00/order</div>
+                        </div>
+                    </div>
+                    <div class="result-item" style="margin-top: 30px; padding: 25px; background: #f0f4ff; border-radius: 18px;">
+                        <div class="result-label">Actual Salary</div>
+                        <div id="result-salary" class="result-value salary-value">$1,382.20</div>
+                    </div>
+                </div>
+                
+                <div class="instructions">
+                    <h3><span class="icon">ℹ️</span>Driver Instructions</h3>
+                    <ol>
+                        <li>Enter your Driver ID in the input field above</li>
+                        <li>Click the "Check Salary" button</li>
+                        <li>Review your detailed salary information</li>
+                        <li>If you have any questions, contact your administrator</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- Admin Portal -->
+            <div id="admin-portal" class="portal">
+                <div id="password-section" class="card">
+                    <h2><span class="icon">🔑</span>Admin Login</h2>
+                    <div class="input-group">
+                        <label for="admin-password">Enter Admin Password</label>
+                        <input type="password" id="admin-password" placeholder="Enter password">
+                    </div>
+                    <button id="submit-password" class="btn">
+                        <span class="icon">→</span> Submit
+                    </button>
+                    <div id="password-error" class="message error" style="display: none; margin-top: 25px;">
+                        Incorrect password, please try again
+                    </div>
+                </div>
+                
+                <div id="admin-section" class="card" style="display: none;">
+                    <h2><span class="icon">⚙️</span>Payment System Management</h2>
+                    
+                    <div class="card">
+                        <h2><span class="icon">📤</span>Import Driver Data</h2>
+                        <div class="file-upload" id="drop-zone">
+                            <p>Drag & drop Excel file here or click to browse</p>
+                            <input type="file" id="excel-file" accept=".xlsx, .xls" style="display: none;">
+                            <button class="btn btn-secondary" id="browse-btn">
+                                <span class="icon">📁</span> Browse Files
+                            </button>
+                        </div>
+                        <div id="import-message" class="message" style="display: none;"></div>
+                        <button id="import-btn" class="btn" disabled>
+                            <span class="icon">⬆️</span> Import Data
+                        </button>
+                    </div>
+                    
+                    <div class="card">
+                        <h2><span class="icon">📊</span>Rate Settings</h2>
+                        <div class="rate-controls">
+                            <div class="rate-card">
+                                <div class="rate-title">
+                                    <span class="icon">📦</span> Same Address Order Rate
+                                </div>
+                                <div class="input-group">
+                                    <label for="same-address-rate">Amount per order ($)</label>
+                                    <input type="number" id="same-address-rate" step="0.01" min="0" value="0.50">
+                                </div>
+                            </div>
+                            
+                            <div class="rate-card">
+                                <div class="rate-title">
+                                    <span class="icon">🚚</span> Regular Order Rate
+                                </div>
+                                <div class="input-group">
+                                    <label for="regular-rate">Amount per order ($)</label>
+                                    <input type="number" id="regular-rate" step="0.01" min="0" value="2.00">
+                                </div>
+                            </div>
+                        </div>
+                        <button id="apply-rates" class="btn">
+                            <span class="icon">✅</span> Apply Rate Changes
+                        </button>
+                    </div>
+                    
+                    <div class="card">
+                        <h2><span class="icon">👤</span>Driver Payment Data</h2>
+                        <div id="drivers-table-container">
+                            <div class="empty-state">
+                                <span class="icon">📊</span>
+                                <h3>No Data Available</h3>
+                                <p>Please import an Excel file to view driver payment data</p>
+                            </div>
+                        </div>
+                        <div class="pagination" id="pagination" style="display: none;">
+                            <button class="page-btn" id="prev-page">←</button>
+                            <span id="page-info">Page 1 of 1</span>
+                            <button class="page-btn" id="next-page">→</button>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <div class="summary-item">
+                                <div class="summary-label">Total Drivers</div>
+                                <div id="total-drivers" class="summary-value">0</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">Total Salary Amount</div>
+                                <div id="total-salary" class="summary-value">$0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="instructions">
+                        <h3><span class="icon">📝</span>Deployment Instructions</h3>
+                        <ol>
+                            <li><strong>Save this file</strong>: Right-click and select "Save As" to save this HTML file</li>
+                            <li><strong>Share with drivers</strong>:
+                                <ul style="margin-top: 10px; padding-left: 20px;">
+                                    <li>Email: Attach the HTML file to an email</li>
+                                    <li>Cloud Storage: Upload to Google Drive or Dropbox and share link</li>
+                                    <li>Company Portal: Add to your company's internal website</li>
+                                </ul>
+                            </li>
+                            <li><strong>Driver usage</strong>: Drivers can open the file in any modern browser and use their ID to check salary</li>
+                            <li><strong>Updates</strong>: When you have new Excel data, simply import it into the system</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<!-- PLACEHOLDER: original full HTML file goes here with all UI intact -->
-<!-- INSERT THIS SCRIPT AT THE BOTTOM of <script> section or replace the existing data loading logic -->
-
-// Auto-load driver data from GitHub on page load
-async function loadDriverDataFromGitHub() {
-  try {
-    const response = await fetch("https://wzmwwjkl.github.io/driver-payment-system/docs/drivers.xlsx");
-    const arrayBuffer = await response.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: "array" });
-
-    const sheetName = workbook.SheetNames.find(name =>
-      name.toLowerCase().includes("driver")
-    );
-
-    if (!sheetName) {
-      console.error("Driver sheet not found in Excel file");
-      return;
-    }
-
-    const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-    if (jsonData.length === 0) {
-      console.error("Driver sheet is empty");
-      return;
-    }
-
-    const drivers = [];
-    const firstRow = jsonData[0];
-    const columnMap = {};
-    Object.keys(firstRow).forEach(key => {
-      const normalizedKey = key.toLowerCase().trim();
-      columnMap[normalizedKey] = key;
-    });
-
-    jsonData.forEach(row => {
-      const idRaw = row[columnMap["driver_id"]];
-      if (!idRaw) return;
-
-      const driverId = String(idRaw).split(".")[0]; // Strip decimals
-      if (driverId === "绿宝") return;
-
-      let driverName = row[columnMap["driver_name"]] || "";
-      const dotIndex = driverName.indexOf(".");
-      if (dotIndex !== -1) {
-        driverName = driverName.substring(dotIndex + 1);
-      }
-
-      const totalOrders = parseInt(row[columnMap["total_order_cnt"]]) || 0;
-      const sameAddressOrders = parseInt(row[columnMap["rest_order_cnt"]]) || 0;
-
-      const deduction = 0;
-      const regularRate = appData.regularRate;
-
-      drivers.push({
-        id: driverId,
-        name: driverName,
-        total_order_cnt: totalOrders,
-        rest_order_cnt: sameAddressOrders,
-        deduction: deduction,
-        regularRate: regularRate
-      });
-    });
-
-    if (drivers.length === 0) {
-      console.error("No valid driver data found in file");
-      return;
-    }
-
-    appData.drivers = drivers;
-    console.log("Driver data loaded from GitHub:", drivers.length);
-    renderDriversTable();
-  } catch (err) {
-    console.error("Failed to load data:", err);
-  }
-}
-
-// Load data from GitHub when page loads
-loadDriverDataFromGitHub();
-
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Global data storage
+            const appData = {
+                drivers: [],
+                sameAddressRate: 0.5,
+                regularRate: 2.0,
+                currentDriver: null,
+                currentPage: 1,
+                driversPerPage: 15
+            };
+            
+            // Tab switching
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const portals = document.querySelectorAll('.portal');
+            
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Update tab state
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // Update content display
+                    portals.forEach(p => p.classList.remove('active'));
+                    document.getElementById(`${btn.dataset.tab}-portal`).classList.add('active');
+                });
+            });
+            
+            // Driver salary check
+            const checkSalaryBtn = document.getElementById('check-salary');
+            const driverIdInput = document.getElementById('driver-id');
+            const resultContainer = document.getElementById('result-container');
+            
+            checkSalaryBtn.addEventListener('click', () => {
+                const driverId = driverIdInput.value.trim();
+                
+                if (!driverId) {
+                    alert('Please enter driver ID');
+                    return;
+                }
+                
+                // Find driver in data
+                const driver = appData.drivers.find(d => d.id === driverId);
+                
+                if (driver) {
+                    displayDriverResult(driver);
+                } else {
+                    alert('Driver not found. Please make sure the admin has imported the data.');
+                }
+            });
+            
+            function displayDriverResult(driver) {
+                document.getElementById('result-id').textContent = driver.id;
+                document.getElementById('result-name').textContent = driver.name;
+                document.getElementById('result-total').textContent = driver.total_order_cnt;
+                document.getElementById('result-same-address').textContent = driver.rest_order_cnt;
+                document.getElementById('result-regular').textContent = driver.total_order_cnt - driver.rest_order_cnt;
+                document.getElementById('result-deduction').textContent = `$${driver.deduction.toFixed(2)}`;
+                document.getElementById('result-same-rate').textContent = `$${appData.sameAddressRate.toFixed(2)}/order`;
+                document.getElementById('result-regular-rate').textContent = `$${driver.regularRate.toFixed(2)}/order`;
+                
+                // Calculate salary
+                const sameAddressEarnings = driver.rest_order_cnt * appData.sameAddressRate;
+                const regularEarnings = (driver.total_order_cnt - driver.rest_order_cnt) * driver.regularRate;
+                const totalEarnings = sameAddressEarnings + regularEarnings - driver.deduction;
+                
+                document.getElementById('result-salary').textContent = `$${totalEarnings.toFixed(2)}`;
+                resultContainer.style.display = 'block';
+            }
+            
+            // Admin functionality
+            const passwordInput = document.getElementById('admin-password');
+            const submitPasswordBtn = document.getElementById('submit-password');
+            const passwordError = document.getElementById('password-error');
+            const adminSection = document.getElementById('admin-section');
+            const passwordSection = document.getElementById('password-section');
+            
+            submitPasswordBtn.addEventListener('click', () => {
+                if (passwordInput.value === 'Del1998!') {
+                    passwordSection.style.display = 'none';
+                    adminSection.style.display = 'block';
+                } else {
+                    passwordError.style.display = 'block';
+                }
+            });
+            
+            // Excel import
+            const browseBtn = document.getElementById('browse-btn');
+            const fileInput = document.getElementById('excel-file');
+            const dropZone = document.getElementById('drop-zone');
+            const importBtn = document.getElementById('import-btn');
+            const importMessage = document.getElementById('import-message');
+            
+            // Open file dialog
+            browseBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // Handle file selection
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    dropZone.classList.add('active');
+                    dropZone.querySelector('p').textContent = `Selected: ${e.target.files[0].name}`;
+                    importBtn.disabled = false;
+                }
+            });
+            
+            // Drag and drop functionality
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('active');
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('active');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('active');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    dropZone.querySelector('p').textContent = `Selected: ${fileInput.files[0].name}`;
+                    importBtn.disabled = false;
+                }
+            });
+            
+            // Import data
+            importBtn.addEventListener('click', () => {
+                if (!fileInput.files.length) return;
+                
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Find Driver sheet
+                        const driverSheetName = workbook.SheetNames.find(name => 
+                            name.toLowerCase().includes('driver')
+                        );
+                        
+                        if (!driverSheetName) {
+                            showMessage('Driver sheet not found', 'error');
+                            return;
+                        }
+                        
+                        const worksheet = workbook.Sheets[driverSheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        
+                        if (jsonData.length === 0) {
+                            showMessage('Driver sheet is empty', 'error');
+                            return;
+                        }
+                        
+                        // Process data
+                        const drivers = [];
+                        
+                        // Find column indexes
+                        const firstRow = jsonData[0];
+                        const columnMap = {};
+                        
+                        // Create column name mapping
+                        Object.keys(firstRow).forEach(key => {
+                            const normalizedKey = key.toLowerCase().trim();
+                            columnMap[normalizedKey] = key;
+                        });
+                        
+                        // Process each row
+                        jsonData.forEach(row => {
+                            // Check required fields
+                            if (!('driver_id' in columnMap) || !row[columnMap.driver_id]) return;
+                            
+                            const driverId = row[columnMap.driver_id];
+                            // Skip summary rows
+                            if (driverId === '绿宝') return;
+                            
+                            // Process driver name
+                            let driverName = '';
+                            if ('driver_name' in columnMap) {
+                                driverName = row[columnMap.driver_name];
+                                // Remove ID prefix
+                                const dotIndex = driverName.indexOf('.');
+                                if (dotIndex !== -1) {
+                                    driverName = driverName.substring(dotIndex + 1);
+                                }
+                            }
+                            
+                            // Get order data
+                            const totalOrders = 'total_order_cnt' in columnMap ? 
+                                parseInt(row[columnMap.total_order_cnt]) || 0 : 0;
+                                
+                            const sameAddressOrders = 'rest_order_cnt' in columnMap ? 
+                                parseInt(row[columnMap.rest_order_cnt]) || 0 : 0;
+                            
+                            // Ignore adjustment column as requested
+                            const deduction = 0;
+                            
+                            // Use default regular rate
+                            const regularRate = appData.regularRate;
+                            
+                            drivers.push({
+                                id: driverId,
+                                name: driverName,
+                                total_order_cnt: totalOrders,
+                                rest_order_cnt: sameAddressOrders,
+                                deduction: deduction,
+                                regularRate: regularRate
+                            });
+                        });
+                        
+                        if (drivers.length === 0) {
+                            showMessage('No valid driver data found', 'error');
+                            return;
+                        }
+                        
+                        appData.drivers = drivers;
+                        showMessage(`Successfully imported ${drivers.length} drivers`, 'success');
+                        renderDriversTable();
+                        
+                        // Notify drivers that new data is available
+                        if (document.getElementById('driver-portal').classList.contains('active')) {
+                            alert('New salary data has been imported. You can now check your salary.');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        showMessage(`Import failed: ${error.message}`, 'error');
+                    }
+                };
+                
+                reader.readAsArrayBuffer(file);
+            });
+            
+            // Rate application
+            const sameAddressRateInput = document.getElementById('same-address-rate');
+            const regularRateInput = document.getElementById('regular-rate');
+            const applyRatesBtn = document.getElementById('apply-rates');
+            
+            applyRatesBtn.addEventListener('click', () => {
+                appData.sameAddressRate = parseFloat(sameAddressRateInput.value) || 0.5;
+                appData.regularRate = parseFloat(regularRateInput.value) || 2.0;
+                
+                // Update all drivers with the new default regular rate
+                appData.drivers.forEach(driver => {
+                    driver.regularRate = appData.regularRate;
+                });
+                
+                if (appData.drivers.length > 0) {
+                    renderDriversTable();
+                    showMessage('Rates updated successfully for all drivers', 'success');
+                }
+            });
+            
+            // Pagination
+            const prevPageBtn = document.getElementById('prev-page');
+            const nextPageBtn = document.getElementById('next-page');
+            const pageInfo = document.getElementById('page-info');
+            
+            prevPageBtn.addEventListener('click', () => {
+                if (appData.currentPage > 1) {
+                    appData.currentPage--;
+                    renderDriversTable();
+                }
+            });
+            
+            nextPageBtn.addEventListener('click', () => {
+                const totalPages = Math.ceil(appData.drivers.length / appData.driversPerPage);
+                if (appData.currentPage < totalPages) {
+                    appData.currentPage++;
+                    renderDriversTable();
+                }
+            });
+            
+            // Show message
+            function showMessage(text, type) {
+                importMessage.textContent = text;
+                importMessage.className = `message ${type}`;
+                importMessage.style.display = 'block';
+                
+                setTimeout(() => {
+                    importMessage.style.display = 'none';
+                }, 5000);
+            }
+            
+            // Render drivers table
+            function renderDriversTable() {
+                const container = document.getElementById('drivers-table-container');
+                const pagination = document.getElementById('pagination');
+                
+                if (appData.drivers.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <span class="icon">📊</span>
+                            <h3>No Data Available</h3>
+                            <p>Please import an Excel file to view driver payment data</p>
+                        </div>
+                    `;
+                    pagination.style.display = 'none';
+                    document.getElementById('total-drivers').textContent = '0';
+                    document.getElementById('total-salary').textContent = '$0.00';
+                    return;
+                }
+                
+                // Pagination logic
+                const totalPages = Math.ceil(appData.drivers.length / appData.driversPerPage);
+                const startIndex = (appData.currentPage - 1) * appData.driversPerPage;
+                const endIndex = Math.min(startIndex + appData.driversPerPage, appData.drivers.length);
+                const currentDrivers = appData.drivers.slice(startIndex, endIndex);
+                
+                let tableHTML = `
+                    <div class="drivers-table-container">
+                        <table class="drivers-table">
+                            <thead>
+                                <tr>
+                                    <th>Driver ID</th>
+                                    <th>Name</th>
+                                    <th>Total Orders</th>
+                                    <th>Same Address</th>
+                                    <th>Regular Rate</th>
+                                    <th>Deductions ($)</th>
+                                    <th>Salary ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                let totalSalary = 0;
+                
+                currentDrivers.forEach(driver => {
+                    const regularOrders = driver.total_order_cnt - driver.rest_order_cnt;
+                    const sameAddressEarnings = driver.rest_order_cnt * appData.sameAddressRate;
+                    const regularEarnings = regularOrders * driver.regularRate;
+                    const totalEarnings = sameAddressEarnings + regularEarnings - driver.deduction;
+                    
+                    totalSalary += totalEarnings;
+                    
+                    tableHTML += `
+                        <tr>
+                            <td>${driver.id}</td>
+                            <td>${driver.name}</td>
+                            <td>${driver.total_order_cnt}</td>
+                            <td>${driver.rest_order_cnt}</td>
+                            <td>
+                                <input type="number" class="input-field" 
+                                    value="${driver.regularRate.toFixed(2)}" 
+                                    onchange="updateDriverRate('${driver.id}', this.value)" step="0.01" min="0">
+                            </td>
+                            <td>
+                                <input type="number" class="input-field" 
+                                    value="${driver.deduction.toFixed(2)}" 
+                                    onchange="updateDeduction('${driver.id}', this.value)" step="0.01" min="0">
+                            </td>
+                            <td><strong>${totalEarnings.toFixed(2)}</strong></td>
+                        </tr>
+                    `;
+                });
+                
+                tableHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                container.innerHTML = tableHTML;
+                
+                // Update pagination
+                pageInfo.textContent = `Page ${appData.currentPage} of ${totalPages}`;
+                prevPageBtn.disabled = appData.currentPage === 1;
+                nextPageBtn.disabled = appData.currentPage === totalPages;
+                pagination.style.display = 'flex';
+                
+                // Update summary
+                document.getElementById('total-drivers').textContent = appData.drivers.length;
+                document.getElementById('total-salary').textContent = `$${totalSalary.toFixed(2)}`;
+            }
+            
+            // Global function for updating deduction
+            window.updateDeduction = function(driverId, value) {
+                const deduction = parseFloat(value) || 0;
+                const driver = appData.drivers.find(d => d.id === driverId);
+                
+                if (driver) {
+                    driver.deduction = deduction;
+                    renderDriversTable();
+                }
+            };
+            
+            // Global function for updating driver rate
+            window.updateDriverRate = function(driverId, value) {
+                const rate = parseFloat(value) || 0;
+                const driver = appData.drivers.find(d => d.id === driverId);
+                
+                if (driver) {
+                    driver.regularRate = rate;
+                    renderDriversTable();
+                }
+            };
+        });
+    </script>
+</body>
+</html>
